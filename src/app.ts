@@ -2,8 +2,14 @@ import express from 'express';
 import mongoose from 'mongoose';
 import bodyParser from 'body-parser';
 
+import dotenv from 'dotenv';
+
+dotenv.config();
+
 import { corsMiddleware } from './middleware/cors';
 import { errorMiddleware } from './middleware/error';
+
+import { USER_ROUTES } from './routes/paths/appPaths';
 
 import userRouter from './routes/user';
 
@@ -13,16 +19,16 @@ app.use(bodyParser.json());
 
 app.use(corsMiddleware);
 
-app.use('/api/users', userRouter);
+app.use(USER_ROUTES, userRouter);
 
 app.use(errorMiddleware);
 
 (async () => {
     try {
-        await mongoose.connect(
-            'mongodb+srv://M-Kolacz:dNzVmXMUmKPdiz3G@pzmarta.lsirx.mongodb.net/pzMarta?retryWrites=true&w=majority',
-            { useNewUrlParser: true, useUnifiedTopology: true },
-        );
+        await mongoose.connect(process.env.DATABASE_URL, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
     } catch (err) {
         console.log(err);
     }
