@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import jwt, { Secret } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { validationResult } from 'express-validator';
 
 import HttpError from '../models/http-error';
@@ -60,7 +60,7 @@ export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBo
     try {
         token = jwt.sign(
             { userId: createdUser.id, email: createdUser.email },
-            process.env.JWT_SECURITY,
+            process.env.JWT_SECURITY!,
             {
                 expiresIn: '1h',
             },
@@ -102,7 +102,7 @@ export const postLogin: RequestHandler = async (req: CustomRequest<PostLoginBody
     try {
         token = jwt.sign(
             { userId: userExist.id, email: userExist.email },
-            process.env.JWT_SECURITY,
+            process.env.JWT_SECURITY!,
             { expiresIn: '1h' },
         );
     } catch (err) {
