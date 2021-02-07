@@ -3,3 +3,10 @@ declare namespace Express {
         userData?: { userId: string };
     }
 }
+
+declare namespace NodeJS {
+    interface ProcessEnv {
+        JWT_SECURITY: string;
+        DATABASE_URL: string;
+    }
+}

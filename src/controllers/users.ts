@@ -1,10 +1,10 @@
-import { isValidRequest } from '../shared/utils/express-validator';
-import { hashPassword, validatePassword } from '../shared/utils/bcrypt';
-import { createToken } from '../shared/utils/jwt';
+import bcrypt from 'bcryptjs';
+import jwt, { Secret } from 'jsonwebtoken';
+import { validationResult } from 'express-validator';
 
-import { RequestHandler, CustomRequest } from '../shared/types/requests';
-import User, { UserInterface } from '../models/user';
 import HttpError from '../models/http-error';
+import User, { UserInterface } from '../models/user';
+import { RequestHandler, CustomRequest } from '../shared/types/requests';
 
 export interface PostSignupBody {
     name: string;
@@ -18,7 +18,11 @@ export interface PostLoginBody {
 }
 
 export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBody>, res, next) => {
-    isValidRequest(req, next);
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+        return next(new HttpError('Invalid inputs passed, please check your data.', 422));
+    }
 
     const { name, email, password } = req.body;
 
@@ -33,8 +37,12 @@ export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBo
     if (userExist) {
         return next(new HttpError('User exists already,please login instead.', 422));
     }
-
-    const hashedPassword = await hashPassword(password, next);
+    let hashedPassword;
+    try {
+        hashedPassword = await bcrypt.hash(password, 12);
+    } catch (err) {
+        return next(new HttpError('Could not create user, please try again.', 500));
+    }
 
     const createdUser = new User({
         name,
@@ -48,9 +56,18 @@ export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBo
         return next(new HttpError('Signup failed, please try again ', 500));
     }
 
-    const token = createToken({ userId: createdUser.id, email: createdUser.email }, next, {
-        expiresIn: '1h',
-    });
+    let token: string;
+    try {
+        token = jwt.sign(
+            { userId: createdUser.id, email: createdUser.email },
+            process.env.JWT_SECURITY,
+            {
+                expiresIn: '1h',
+            },
+        );
+    } catch (err) {
+        return next(new HttpError('Signup failed, please try again', 500));
+    }
 
     res.status(201).json({ userId: createdUser.id, email: createdUser.email, token });
 };
@@ -69,11 +86,28 @@ export const postLogin: RequestHandler = async (req: CustomRequest<PostLoginBody
         return next(new HttpError('Invalid credentials, could not log you in.', 403));
     }
 
-    await validatePassword({ password, hashedPassword: userExist.password }, next);
+    let isValidPassword = false;
+    try {
+        isValidPassword = await bcrypt.compare(password, userExist.password);
+    } catch (err) {
+        return next(
+            new HttpError('Could not log you in, please check your credentials and try again', 500),
+        );
+    }
+    if (!isValidPassword) {
+        return next(new HttpError('Invalid credentials, could not log you in.', 401));
+    }
 
-    const token = createToken({ userId: userExist.id, email: userExist.email }, next, {
-        expiresIn: '1h',
-    });
+    let token: string;
+    try {
+        token = jwt.sign(
+            { userId: userExist.id, email: userExist.email },
+            process.env.JWT_SECURITY,
+            { expiresIn: '1h' },
+        );
+    } catch (err) {
+        return next(new HttpError('Logging in failed, please try again', 500));
+    }
 
     res.json({ userId: userExist.id, email: userExist.email, token });
 };

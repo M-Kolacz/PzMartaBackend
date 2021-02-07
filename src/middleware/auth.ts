@@ -1,5 +1,7 @@
+import jwt from 'jsonwebtoken';
+
+import { TokenInterface } from '../shared/types/token';
 import { RequestHandler } from '../shared/types/requests';
-import { verifyToken } from '../shared/utils/jwt';
 import HttpError from '../models/http-error';
 
 export const authMiddleware: RequestHandler = (req, res, next) => {
@@ -8,7 +10,8 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
         if (!token) {
             return next(new HttpError('Authentication failed.', 422));
         }
-        const { userId } = verifyToken(token);
+        const { userId } = jwt.verify(token, 'SwietnyProjektZespolowy') as TokenInterface;
+
         req.userData = { userId };
     } catch (err) {
         return next(new HttpError('Authentication failed!', 403));
