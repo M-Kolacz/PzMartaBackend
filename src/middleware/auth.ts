@@ -11,7 +11,7 @@ export const authMiddleware: RequestHandler = (req, res, next) => {
         if (!token) {
             return next(new HttpError(failedAuthentication, 422));
         }
-        const { userId } = jwt.verify(token, 'SwietnyProjektZespolowy') as TokenInterface;
+        const { userId } = jwt.verify(token, process.env.JWT_SECURITY!) as TokenInterface;
 
         req.userData = { userId };
     } catch (err) {
