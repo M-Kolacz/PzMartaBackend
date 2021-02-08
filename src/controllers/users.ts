@@ -7,7 +7,6 @@ import User, { UserInterface } from '../models/user';
 import { RequestHandler, CustomRequest } from '../shared/types/requests';
 
 export interface PostSignupBody {
-    name: string;
     email: string;
     password: string;
 }
@@ -24,7 +23,7 @@ export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBo
         return next(new HttpError('Invalid inputs passed, please check your data.', 422));
     }
 
-    const { name, email, password } = req.body;
+    const { email, password } = req.body;
 
     let userExist: UserInterface;
 
@@ -45,7 +44,6 @@ export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBo
     }
 
     const createdUser = new User({
-        name,
         email,
         password: hashedPassword,
     });
