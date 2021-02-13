@@ -15,19 +15,24 @@ import {
     invalidPassword,
 } from '../shared/SSOT/ErrorMessages/user';
 import { RequestBodyHandler } from '../shared/types/requests';
-import { TokenInterface } from '../shared/types/token';
+import { CustomToken } from '../shared/types/token';
 
-export interface PostSignupBody {
+interface PostSignupBody {
     email: string;
     password: string;
 }
 
-export interface PostLoginBody {
+interface PostLoginBody {
     email: string;
     password: string;
 }
-export interface PostActivationBody {
+
+interface PostActivationBody {
     token: string;
+}
+
+interface ActivationToken {
+    userId: string;
 }
 
 export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, next) => {
@@ -102,14 +107,11 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
 
     let verifyToken;
     try {
-        verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as {
-            exp: number;
-            iat: number;
-            userId: string;
-        };
+        verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as CustomToken<ActivationToken>;
     } catch (error) {
         return next(new HttpError(invalidPassword, 401));
     }
+
     if (verifyToken.exp * 1000 < Date.now()) {
         return next(new HttpError(invalidPassword, 401));
     }
