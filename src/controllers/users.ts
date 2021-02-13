@@ -4,8 +4,8 @@ import sgMail from '@sendgrid/mail';
 import { validationResult } from 'express-validator';
 
 import HttpError from '../models/http-error';
-import { confirmRegistration } from '../shared/emails/emails';
 import User, { UserInterface } from '../models/user';
+import { confirmRegistration } from '../shared/emails';
 import {
     invalidInputs,
     failedSignup,
@@ -14,7 +14,7 @@ import {
     invalidUser,
     invalidPassword,
 } from '../shared/SSOT/ErrorMessages/user';
-import { RequestHandler, CustomRequest } from '../shared/types/requests';
+import { RequestBodyHandler } from '../shared/types/requests';
 import { TokenInterface } from '../shared/types/token';
 
 export interface PostSignupBody {
@@ -30,7 +30,7 @@ export interface PostActivationBody {
     token: string;
 }
 
-export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBody>, res, next) => {
+export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -69,7 +69,7 @@ export const postSignup: RequestHandler = async (req: CustomRequest<PostSignupBo
     res.status(201).json({});
 };
 
-export const postLogin: RequestHandler = async (req: CustomRequest<PostLoginBody>, res, next) => {
+export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, next) => {
     const { email, password } = req.body;
 
     const userExist: UserInterface = await User.findOne({ email }).catch(() =>
@@ -97,11 +97,7 @@ export const postLogin: RequestHandler = async (req: CustomRequest<PostLoginBody
     res.json({ userId: userExist.id, email: userExist.email, token });
 };
 
-export const postActivation: RequestHandler = async (
-    req: CustomRequest<PostActivationBody>,
-    res,
-    next,
-) => {
+export const postActivation: RequestBodyHandler<PostActivationBody> = async (req, res, next) => {
     const { token } = req.body;
 
     let verifyToken;

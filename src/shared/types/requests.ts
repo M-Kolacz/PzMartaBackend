@@ -12,8 +12,10 @@ export type ErrorRequestHandler = (
     next: NextFunction,
 ) => any;
 
-export type RequestHandler = (req: Request, res: Response, next: NextFunction) => any;
-
-export interface CustomRequest<T> extends Request {
+export interface BodyRequest<T> extends Request {
     body: T;
 }
+
+export type RequestHandler = (req: Request, res: Response, next: NextFunction) => any;
+
+export type RequestBodyHandler<T> = (req: BodyRequest<T>, res: Response, next: NextFunction) => any;
