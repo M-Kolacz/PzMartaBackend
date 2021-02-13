@@ -1,10 +1,12 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import sgMail from '@sendgrid/mail';
 import bodyParser from 'body-parser';
 
 import dotenv from 'dotenv';
 
 dotenv.config();
+sgMail.setApiKey(process.env.SEND_GRID_API!);
 
 import { corsMiddleware } from './middleware/cors';
 import { errorMiddleware } from './middleware/error';
