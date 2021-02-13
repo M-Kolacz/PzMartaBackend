@@ -1,9 +1,8 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import mongoose from 'mongoose';
 import sgMail from '@sendgrid/mail';
 import bodyParser from 'body-parser';
-
-import dotenv from 'dotenv';
 
 dotenv.config();
 sgMail.setApiKey(process.env.SEND_GRID_API!);
