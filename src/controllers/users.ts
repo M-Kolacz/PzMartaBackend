@@ -22,6 +22,10 @@ interface PostSignupBody {
     password: string;
 }
 
+interface PostResendVerification {
+    email: string;
+}
+
 interface PostLoginBody {
     email: string;
     password: string;
@@ -67,11 +71,52 @@ export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, n
         expiresIn: '2h',
     });
 
-    await sgMail
+    sgMail
         .send(confirmRegistration({ to: createdUser.email, token }))
         .catch((error) => next(new HttpError(failedSignup, 500)));
 
     res.status(201).json({});
+};
+
+export const postResendVerification: RequestBodyHandler<PostResendVerification> = async (
+    req,
+    res,
+    next,
+) => {
+    const { email } = req.body;
+
+    const userExist: UserInterface = await User.findOne({ email }).catch(() =>
+        next(new HttpError('Ponowne wysłanie email nie powiodło się. Spróbuj ponownie.', 500)),
+    );
+    if (!userExist) {
+        return next(new HttpError(invalidUser, 403));
+    }
+
+    const token = jwt.sign({ userId: userExist.id }, process.env.JWT_SECURITY!, {
+        expiresIn: '2h',
+    });
+
+    await sgMail
+        .send(confirmRegistration({ to: userExist.email, token }))
+        .catch(() => next(new HttpError(failedSignup, 500)));
+
+    res.status(201).json({ message: 'Udało się wysłać' });
+};
+
+export const postActivation: RequestBodyHandler<PostActivationBody> = async (req, res, next) => {
+    const { token } = req.body;
+
+    let verifyToken;
+    try {
+        verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as CustomToken<ActivationToken>;
+    } catch (error) {
+        return next(new HttpError(invalidPassword, 401));
+    }
+
+    if (verifyToken.exp * 1000 < Date.now()) {
+        return next(new HttpError(invalidPassword, 401));
+    }
+    res.status(201).json({ message: 'Account activated!' });
 };
 
 export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, next) => {
@@ -100,20 +145,4 @@ export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, nex
     );
 
     res.json({ userId: userExist.id, email: userExist.email, token });
-};
-
-export const postActivation: RequestBodyHandler<PostActivationBody> = async (req, res, next) => {
-    const { token } = req.body;
-
-    let verifyToken;
-    try {
-        verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as CustomToken<ActivationToken>;
-    } catch (error) {
-        return next(new HttpError(invalidPassword, 401));
-    }
-
-    if (verifyToken.exp * 1000 < Date.now()) {
-        return next(new HttpError(invalidPassword, 401));
-    }
-    res.status(201).json({ message: 'Account activated!' });
 };
