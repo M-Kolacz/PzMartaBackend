@@ -13,6 +13,7 @@ import {
     failedLogin,
     invalidUser,
     invalidPassword,
+    failedResend,
 } from '../shared/SSOT/ErrorMessages/user';
 import { RequestBodyHandler } from '../shared/types/requests';
 import { CustomToken } from '../shared/types/token';
@@ -86,7 +87,7 @@ export const postResendVerification: RequestBodyHandler<PostResendVerification> 
     const { email } = req.body;
 
     const userExist: UserInterface = await User.findOne({ email }).catch(() =>
-        next(new HttpError('Ponowne wysłanie email nie powiodło się. Spróbuj ponownie.', 500)),
+        next(new HttpError(failedResend, 500)),
     );
     if (!userExist) {
         return next(new HttpError(invalidUser, 403));
@@ -98,7 +99,7 @@ export const postResendVerification: RequestBodyHandler<PostResendVerification> 
 
     await sgMail
         .send(confirmRegistration({ to: userExist.email, token }))
-        .catch(() => next(new HttpError(failedSignup, 500)));
+        .catch(() => next(new HttpError(failedResend, 500)));
 
     res.status(201).json({ message: 'Udało się wysłać' });
 };
