@@ -14,6 +14,8 @@ import {
     invalidUser,
     invalidPassword,
     failedResend,
+    failedActivation,
+    noActivation,
 } from '../shared/SSOT/ErrorMessages/user';
 import { RequestBodyHandler } from '../shared/types/requests';
 import { CustomToken } from '../shared/types/token';
@@ -64,6 +66,7 @@ export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, n
     const createdUser = new User({
         email,
         password: hashedPassword,
+        isActive: false,
     });
 
     await createdUser.save().catch(() => next(new HttpError(failedSignup, 500)));
@@ -111,13 +114,18 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
     try {
         verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as CustomToken<ActivationToken>;
     } catch (error) {
-        return next(new HttpError(invalidPassword, 401));
+        return next(new HttpError(failedActivation, 401));
     }
 
     if (verifyToken.exp * 1000 < Date.now()) {
-        return next(new HttpError(invalidPassword, 401));
+        return next(new HttpError(failedActivation, 401));
     }
-    res.status(201).json({ message: 'Account activated!' });
+
+    await User.findOneAndUpdate({ _id: verifyToken.userId }, { isActive: true }).catch(() =>
+        next(new HttpError(failedActivation, 401)),
+    );
+
+    res.status(201).json({ message: 'Konto aktywowane' });
 };
 
 export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, next) => {
@@ -129,6 +137,9 @@ export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, nex
 
     if (!userExist) {
         return next(new HttpError(invalidUser, 403));
+    }
+    if (!userExist.isActive) {
+        return next(new HttpError(noActivation, 401));
     }
 
     const isValidPassword = await bcrypt

@@ -12,6 +12,12 @@ export const failedResend = 'Ponowne wysłanie email nie powiodło się. Spróbu
 // LOGIN
 export const failedLogin = 'Logowanie się nie udało. Proszę spróbować ponownie';
 
+export const noActivation = 'Konto nie zostało aktywowane';
+
 export const invalidUser = 'Użytkownik nie istnieje ';
 
 export const invalidPassword = 'Podane hasło jest nieprawidłowe';
+
+// ACTIVATION
+
+export const failedActivation = 'Aktywacja się nie udała ';

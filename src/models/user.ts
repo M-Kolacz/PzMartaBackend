@@ -4,6 +4,7 @@ import uniqueValidator from 'mongoose-unique-validator';
 export interface UserInterface extends Document {
     email: string;
     password: string;
+    isActive: boolean;
 }
 
 const userSchema = new Schema({
@@ -16,6 +17,10 @@ const userSchema = new Schema({
         type: String,
         required: true,
         minlength: 8,
+    },
+    isActive: {
+        type: Boolean,
+        required: true,
     },
 });
 
