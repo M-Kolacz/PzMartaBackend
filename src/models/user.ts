@@ -1,13 +1,13 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, Model, Document, model } from 'mongoose';
 import uniqueValidator from 'mongoose-unique-validator';
 
-export interface UserInterface extends Document {
+export interface IUser extends Document {
+    id: string;
     email: string;
     password: string;
-    isActive: boolean;
 }
 
-const userSchema = new Schema({
+const UserSchema: Schema = new Schema({
     email: {
         type: String,
         required: true,
@@ -18,12 +18,10 @@ const userSchema = new Schema({
         required: true,
         minlength: 8,
     },
-    isActive: {
-        type: Boolean,
-        required: true,
-    },
 });
 
-userSchema.plugin(uniqueValidator);
+UserSchema.plugin(uniqueValidator);
 
-export default model<UserInterface>('User', userSchema);
+const User: Model<IUser> = model<IUser>('User', UserSchema);
+
+export default User;

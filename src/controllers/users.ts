@@ -4,7 +4,8 @@ import sgMail from '@sendgrid/mail';
 import { validationResult } from 'express-validator';
 
 import HttpError from '../models/http-error';
-import User, { UserInterface } from '../models/user';
+import User, { IUser } from '../models/user';
+import { isTokenExpired } from '../shared/utils/tokenExpiration';
 import { confirmRegistration } from '../shared/emails';
 import {
     invalidInputs,
@@ -13,9 +14,7 @@ import {
     failedLogin,
     invalidUser,
     invalidPassword,
-    failedResend,
     failedActivation,
-    noActivation,
 } from '../shared/SSOT/ErrorMessages/user';
 import { RequestBodyHandler } from '../shared/types/requests';
 import { CustomToken } from '../shared/types/token';
@@ -23,10 +22,6 @@ import { CustomToken } from '../shared/types/token';
 interface PostSignupBody {
     email: string;
     password: string;
-}
-
-interface PostResendVerification {
-    email: string;
 }
 
 interface PostLoginBody {
@@ -39,7 +34,8 @@ interface PostActivationBody {
 }
 
 interface ActivationToken {
-    userId: string;
+    email: string;
+    password: string;
 }
 
 export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, next) => {
@@ -51,7 +47,7 @@ export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, n
 
     const { email, password } = req.body;
 
-    const userExist: UserInterface = await User.findOne({ email }).catch(() =>
+    const userExist: IUser = await User.findOne({ email }).catch(() =>
         next(new HttpError(failedSignup, 500)),
     );
 
@@ -63,48 +59,15 @@ export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, n
         .hash(password, 12)
         .catch(() => next(new HttpError(failedSignup, 500)));
 
-    const createdUser = new User({
-        email,
-        password: hashedPassword,
-        isActive: false,
-    });
-
-    await createdUser.save().catch(() => next(new HttpError(failedSignup, 500)));
-
-    const token = jwt.sign({ userId: createdUser.id }, process.env.JWT_SECURITY!, {
+    const token = jwt.sign({ email, password: hashedPassword }, process.env.JWT_SECURITY!, {
         expiresIn: '2h',
     });
 
     sgMail
-        .send(confirmRegistration({ to: createdUser.email, token }))
+        .send(confirmRegistration({ to: email, token }))
         .catch((error) => next(new HttpError(failedSignup, 500)));
 
-    res.status(201).json({});
-};
-
-export const postResendVerification: RequestBodyHandler<PostResendVerification> = async (
-    req,
-    res,
-    next,
-) => {
-    const { email } = req.body;
-
-    const userExist: UserInterface = await User.findOne({ email }).catch(() =>
-        next(new HttpError(failedResend, 500)),
-    );
-    if (!userExist) {
-        return next(new HttpError(invalidUser, 403));
-    }
-
-    const token = jwt.sign({ userId: userExist.id }, process.env.JWT_SECURITY!, {
-        expiresIn: '2h',
-    });
-
-    await sgMail
-        .send(confirmRegistration({ to: userExist.email, token }))
-        .catch(() => next(new HttpError(failedResend, 500)));
-
-    res.status(201).json({ message: 'Udało się wysłać' });
+    res.status(201).json({ message: 'Email został wysłany' });
 };
 
 export const postActivation: RequestBodyHandler<PostActivationBody> = async (req, res, next) => {
@@ -117,13 +80,16 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
         return next(new HttpError(failedActivation, 401));
     }
 
-    if (verifyToken.exp * 1000 < Date.now()) {
+    if (isTokenExpired(verifyToken)) {
         return next(new HttpError(failedActivation, 401));
     }
 
-    await User.findOneAndUpdate({ _id: verifyToken.userId }, { isActive: true }).catch(() =>
-        next(new HttpError(failedActivation, 401)),
-    );
+    const NewUser = new User({
+        email: verifyToken.email,
+        password: verifyToken.password,
+    });
+
+    await NewUser.save();
 
     res.status(201).json({ message: 'Konto aktywowane' });
 };
@@ -131,15 +97,12 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
 export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, next) => {
     const { email, password } = req.body;
 
-    const userExist: UserInterface = await User.findOne({ email }).catch(() =>
+    const userExist: IUser = await User.findOne({ email }).catch(() =>
         next(new HttpError(failedLogin, 500)),
     );
 
     if (!userExist) {
         return next(new HttpError(invalidUser, 403));
-    }
-    if (!userExist.isActive) {
-        return next(new HttpError(noActivation, 401));
     }
 
     const isValidPassword = await bcrypt
