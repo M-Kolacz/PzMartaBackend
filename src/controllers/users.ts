@@ -84,6 +84,13 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
         return next(new HttpError(failedActivation, 401));
     }
 
+    const UserExists = User.findOne({ email: verifyToken.email }).catch(() =>
+        next(new HttpError(failedActivation, 401)),
+    );
+    if (UserExists) {
+        return next(new HttpError('Użytkownik istnieje', 422));
+    }
+
     const NewUser = new User({
         email: verifyToken.email,
         password: verifyToken.password,
@@ -91,7 +98,13 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
 
     await NewUser.save();
 
-    res.status(201).json({ message: 'Konto aktywowane' });
+    const authToken = jwt.sign(
+        { userId: NewUser.id, email: NewUser.email },
+        process.env.JWT_SECURITY!,
+        { expiresIn: '1h' },
+    );
+
+    res.status(201).json({ userId: NewUser.id, token: authToken });
 };
 
 export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, next) => {
@@ -119,5 +132,5 @@ export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, nex
         { expiresIn: '1h' },
     );
 
-    res.json({ userId: userExist.id, email: userExist.email, token });
+    res.json({ userId: userExist.id, token });
 };
