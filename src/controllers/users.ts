@@ -16,29 +16,28 @@ import {
     invalidPassword,
     failedActivation,
 } from '../shared/SSOT/ErrorMessages/user';
-import { RequestBodyHandler } from '../shared/types/requests';
-import { CustomToken } from '../shared/types/token';
+import { RequestBodyHandler, CustomToken } from '../shared/ts/types';
 
-interface PostSignupBody {
+interface ISignupBody {
     email: string;
     password: string;
 }
 
-interface PostLoginBody {
+interface ILoginBody {
     email: string;
     password: string;
 }
 
-interface PostActivationBody {
+interface IActivationBody {
     token: string;
 }
 
-interface ActivationToken {
+interface IActivationToken {
     email: string;
     password: string;
 }
 
-export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, next) => {
+export const postSignup: RequestBodyHandler<ISignupBody> = async (req, res, next) => {
     const errors = validationResult(req);
 
     if (!errors.isEmpty()) {
@@ -70,12 +69,12 @@ export const postSignup: RequestBodyHandler<PostSignupBody> = async (req, res, n
     res.status(201).json({ message: 'Email został wysłany' });
 };
 
-export const postActivation: RequestBodyHandler<PostActivationBody> = async (req, res, next) => {
+export const postActivation: RequestBodyHandler<IActivationBody> = async (req, res, next) => {
     const { token } = req.body;
 
     let verifyToken;
     try {
-        verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as CustomToken<ActivationToken>;
+        verifyToken = jwt.verify(token, process.env.JWT_SECURITY!) as CustomToken<IActivationToken>;
     } catch (error) {
         return next(new HttpError(failedActivation, 401));
     }
@@ -107,7 +106,7 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
     res.status(201).json({ userId: NewUser.id, token: authToken });
 };
 
-export const postLogin: RequestBodyHandler<PostLoginBody> = async (req, res, next) => {
+export const postLogin: RequestBodyHandler<ILoginBody> = async (req, res, next) => {
     const { email, password } = req.body;
 
     const userExist: IUser = await User.findOne({ email }).catch(() =>

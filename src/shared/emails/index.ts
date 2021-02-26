@@ -2,12 +2,12 @@ import { MailDataRequired } from '@sendgrid/mail';
 
 const from = 'pzmarta@wp.pl';
 
-interface ConfirmObject {
+interface IConfirmObject {
     to: string;
     token: string;
 }
 
-type ConfirmRegistration = (options: ConfirmObject) => MailDataRequired;
+type ConfirmRegistration = (options: IConfirmObject) => MailDataRequired;
 
 export const confirmRegistration: ConfirmRegistration = ({ to, token }) => ({
     to,

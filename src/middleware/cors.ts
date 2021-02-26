@@ -1,4 +1,4 @@
-import { RequestHandler } from '../shared/types/requests';
+import { RequestHandler } from '../shared/ts/types';
 
 export const corsMiddleware: RequestHandler = (req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');

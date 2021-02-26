@@ -1,4 +1,4 @@
-import { ErrorRequestHandler } from '../shared/types/requests';
+import { ErrorRequestHandler } from '../shared/ts/types';
 
 export const errorMiddleware: ErrorRequestHandler = (error, req, res, next) => {
     const { statusCode = 500, message = '' } = error;
