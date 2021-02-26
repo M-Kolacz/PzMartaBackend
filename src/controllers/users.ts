@@ -84,7 +84,7 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
         return next(new HttpError(failedActivation, 401));
     }
 
-    const UserExists = User.findOne({ email: verifyToken.email }).catch(() =>
+    const UserExists = await User.findOne({ email: verifyToken.email }).catch(() =>
         next(new HttpError(failedActivation, 401)),
     );
     if (UserExists) {
@@ -96,7 +96,7 @@ export const postActivation: RequestBodyHandler<PostActivationBody> = async (req
         password: verifyToken.password,
     });
 
-    await NewUser.save();
+    await NewUser.save().catch(() => next(new HttpError(failedActivation, 401)));
 
     const authToken = jwt.sign(
         { userId: NewUser.id, email: NewUser.email },
