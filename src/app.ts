@@ -4,8 +4,10 @@ import mongoose from 'mongoose';
 import sgMail from '@sendgrid/mail';
 import bodyParser from 'body-parser';
 
+import { SEND_GRID_API } from './shared/utils/secrets';
+
 dotenv.config();
-sgMail.setApiKey(process.env.SEND_GRID_API!);
+sgMail.setApiKey(SEND_GRID_API);
 
 import { corsMiddleware } from './middleware/cors';
 import { errorMiddleware } from './middleware/error';

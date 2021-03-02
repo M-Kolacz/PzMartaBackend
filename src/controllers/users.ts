@@ -46,25 +46,19 @@ export const postSignup: RequestBodyHandler<ISignupBody> = async (req, res, next
 
     const { email, password } = req.body;
 
-    const userExist: IUser = await User.findOne({ email }).catch(() =>
-        next(new HttpError(failedSignup, 500)),
-    );
+    const userExist = await User.findOne({ email }).catch(() => next(new HttpError(failedSignup, 500)));
 
     if (userExist) {
         return next(new HttpError(userExists, 422));
     }
 
-    const hashedPassword = await bcrypt
-        .hash(password, 12)
-        .catch(() => next(new HttpError(failedSignup, 500)));
+    const hashedPassword = await bcrypt.hash(password, 12).catch(() => next(new HttpError(failedSignup, 500)));
 
     const token = jwt.sign({ email, password: hashedPassword }, process.env.JWT_SECURITY!, {
         expiresIn: '2h',
     });
 
-    sgMail
-        .send(confirmRegistration({ to: email, token }))
-        .catch((error) => next(new HttpError(failedSignup, 500)));
+    sgMail.send(confirmRegistration({ to: email, token })).catch((error) => next(new HttpError(failedSignup, 500)));
 
     res.status(201).json({ message: 'Email został wysłany' });
 };
@@ -97,11 +91,9 @@ export const postActivation: RequestBodyHandler<IActivationBody> = async (req, r
 
     await NewUser.save().catch(() => next(new HttpError(failedActivation, 401)));
 
-    const authToken = jwt.sign(
-        { userId: NewUser.id, email: NewUser.email },
-        process.env.JWT_SECURITY!,
-        { expiresIn: '1h' },
-    );
+    const authToken = jwt.sign({ userId: NewUser.id, email: NewUser.email }, process.env.JWT_SECURITY!, {
+        expiresIn: '1h',
+    });
 
     res.status(201).json({ userId: NewUser.id, token: authToken });
 };
@@ -109,9 +101,7 @@ export const postActivation: RequestBodyHandler<IActivationBody> = async (req, r
 export const postLogin: RequestBodyHandler<ILoginBody> = async (req, res, next) => {
     const { email, password } = req.body;
 
-    const userExist: IUser = await User.findOne({ email }).catch(() =>
-        next(new HttpError(failedLogin, 500)),
-    );
+    const userExist = await User.findOne({ email }).catch(() => next(new HttpError(failedLogin, 500)));
 
     if (!userExist) {
         return next(new HttpError(invalidUser, 403));
@@ -125,11 +115,9 @@ export const postLogin: RequestBodyHandler<ILoginBody> = async (req, res, next) 
         return next(new HttpError(invalidPassword, 401));
     }
 
-    const token = jwt.sign(
-        { userId: userExist.id, email: userExist.email },
-        process.env.JWT_SECURITY!,
-        { expiresIn: '1h' },
-    );
+    const token = jwt.sign({ userId: userExist.id, email: userExist.email }, process.env.JWT_SECURITY!, {
+        expiresIn: '1h',
+    });
 
     res.json({ userId: userExist.id, token });
 };
